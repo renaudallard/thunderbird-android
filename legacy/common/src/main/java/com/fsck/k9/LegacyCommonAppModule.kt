@@ -6,8 +6,10 @@ import app.k9mail.feature.widget.unread.unreadWidgetModule
 import com.fsck.k9.account.newAccountModule
 import com.fsck.k9.backends.backendsModule
 import com.fsck.k9.controller.ControllerExtension
+import com.fsck.k9.crypto.CompositeEncryptionExtractor
 import com.fsck.k9.crypto.EncryptionExtractor
 import com.fsck.k9.crypto.openpgp.OpenPgpEncryptionExtractor
+import com.fsck.k9.crypto.smime.SmimeEncryptionExtractor
 import com.fsck.k9.notification.notificationModule
 import com.fsck.k9.preferences.K9StoragePersister
 import com.fsck.k9.resources.resourcesModule
@@ -27,7 +29,14 @@ val legacyCommonAppModule = module {
         )
     }
     single(named("controllerExtensions")) { emptyList<ControllerExtension>() }
-    single<EncryptionExtractor> { OpenPgpEncryptionExtractor.newInstance() }
+    single<EncryptionExtractor> {
+        CompositeEncryptionExtractor(
+            listOf(
+                OpenPgpEncryptionExtractor.newInstance(),
+                SmimeEncryptionExtractor.newInstance(),
+            ),
+        )
+    }
     single<StoragePersister> {
         K9StoragePersister(get(), get())
     }
