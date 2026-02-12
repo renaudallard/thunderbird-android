@@ -95,6 +95,15 @@ public final class CryptoResultAnnotation {
                 CryptoError.OPENPGP_ENCRYPTED_API_ERROR, null, null, null, null, null, error, false);
     }
 
+    public static CryptoResultAnnotation createSmimeResultAnnotation(CryptoError error, MimeBodyPart replacementData) {
+        return new CryptoResultAnnotation(error, replacementData, null, null, null, null, null, false);
+    }
+
+    public static CryptoResultAnnotation createSmimeSignatureErrorAnnotation(MimeBodyPart replacementData) {
+        return new CryptoResultAnnotation(
+                CryptoError.SMIME_SIGNED_API_ERROR, replacementData, null, null, null, null, null, false);
+    }
+
     public boolean isOpenPgpResult() {
         return openPgpDecryptionResult != null && openPgpSignatureResult != null;
     }
@@ -189,5 +198,10 @@ public final class CryptoResultAnnotation {
         SIGNED_BUT_UNSUPPORTED,
         ENCRYPTED_BUT_UNSUPPORTED,
         OPENPGP_ENCRYPTED_NO_PROVIDER,
+        SMIME_SIGNED_VALID,
+        SMIME_SIGNED_INVALID,
+        SMIME_SIGNED_EXPIRED,
+        SMIME_SIGNED_UNTRUSTED,
+        SMIME_SIGNED_API_ERROR,
     }
 }
