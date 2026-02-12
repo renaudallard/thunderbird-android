@@ -10,6 +10,7 @@ dependencies {
     api(projects.core.ui.legacy.designsystem)
 
     implementation(projects.legacy.core)
+    implementation(projects.legacy.cryptoSmime)
     implementation(projects.feature.mail.account.api)
     implementation(projects.mail.common)
     implementation(projects.uiUtils.toolbarBottomSheet)

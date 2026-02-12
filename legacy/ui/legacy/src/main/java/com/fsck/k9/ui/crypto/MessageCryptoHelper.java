@@ -54,6 +54,9 @@ import org.openintents.openpgp.util.OpenPgpApi.OpenPgpDataSource;
 import org.openintents.openpgp.util.OpenPgpServiceConnection;
 import org.openintents.openpgp.util.OpenPgpServiceConnection.OnBound;
 import net.thunderbird.core.logging.legacy.Log;
+import com.fsck.k9.crypto.smime.SmimeSignatureResult;
+import com.fsck.k9.crypto.smime.SmimeSignatureError;
+import com.fsck.k9.crypto.smime.SmimeSignatureVerifier;
 
 
 public class MessageCryptoHelper {
@@ -63,6 +66,7 @@ public class MessageCryptoHelper {
 
 
     private final Context context;
+    @Nullable
     private final String openPgpProvider;
     private final AutocryptOperations autocryptOperations;
     private final Object callbackLock = new Object();
@@ -92,7 +96,7 @@ public class MessageCryptoHelper {
 
 
     public MessageCryptoHelper(Context context, OpenPgpApiFactory openPgpApiFactory,
-            AutocryptOperations autocryptOperations, @NonNull String openPgpProvider) {
+            AutocryptOperations autocryptOperations, @Nullable String openPgpProvider) {
         this.context = context.getApplicationContext();
 
         this.autocryptOperations = autocryptOperations;
@@ -164,6 +168,10 @@ public class MessageCryptoHelper {
                 partsToProcess.add(cryptoPart);
                 continue;
             }
+            if (MessageCryptoStructureDetector.isMultipartSignedSmimeProtocol(part)) {
+                // S/MIME signed parts will be handled in the SMIME_SIGNATURES pass
+                continue;
+            }
             MimeBodyPart replacementPart = getMultipartSignedContentPartIfAvailable(part);
             addErrorAnnotation(part, CryptoError.SIGNED_BUT_UNSUPPORTED, replacementPart);
         }
@@ -202,6 +210,25 @@ public class MessageCryptoHelper {
         }
     }
 
+    private void findPartsForSmimeSignaturePass() {
+        List<Part> signedParts = MessageCryptoStructureDetector
+                .findMultipartSignedParts(currentMessage, messageAnnotations);
+        for (Part part : signedParts) {
+            if (messageAnnotations.has(part)) {
+                continue;
+            }
+            if (!MessageHelper.isCompletePartAvailable(part)) {
+                MimeBodyPart replacementPart = getMultipartSignedContentPartIfAvailable(part);
+                addErrorAnnotation(part, CryptoError.SMIME_SIGNED_API_ERROR, replacementPart);
+                continue;
+            }
+            if (MessageCryptoStructureDetector.isMultipartSignedSmimeProtocol(part)) {
+                CryptoPart cryptoPart = new CryptoPart(CryptoPartType.SMIME_SIGNED, part);
+                partsToProcess.add(cryptoPart);
+            }
+        }
+    }
+
     private void addErrorAnnotation(Part part, CryptoError error, MimeBodyPart replacementPart) {
         CryptoResultAnnotation annotation = CryptoResultAnnotation.createErrorAnnotation(error, replacementPart);
         messageAnnotations.put(part, annotation);
@@ -221,12 +248,17 @@ public class MessageCryptoHelper {
             return;
         }
 
+        currentCryptoPart = partsToProcess.peekFirst();
+        if (currentCryptoPart.type == CryptoPartType.SMIME_SIGNED) {
+            verifySmimeSignature();
+            return;
+        }
+
         if (!isBoundToCryptoProviderService()) {
             connectToCryptoProviderService();
             return;
         }
 
-        currentCryptoPart = partsToProcess.peekFirst();
         if (currentCryptoPart.type == CryptoPartType.PLAIN_AUTOCRYPT) {
             processAutocryptHeaderForCurrentPart();
         } else {
@@ -326,6 +358,45 @@ public class MessageCryptoHelper {
                     Log.d("Autocrypt update OK!");
                 }
             });
+        }
+        onCryptoFinished();
+    }
+
+    private void verifySmimeSignature() {
+        Part part = currentCryptoPart.part;
+        try {
+            Multipart multipart = (Multipart) part.getBody();
+            BodyPart signedBodyPart = multipart.getBodyPart(0);
+
+            ByteArrayOutputStream signedDataStream = new ByteArrayOutputStream();
+            signedBodyPart.writeTo(signedDataStream);
+            byte[] signedData = signedDataStream.toByteArray();
+
+            byte[] signatureData = MessageCryptoStructureDetector.getSignatureData(part);
+
+            SmimeSignatureVerifier verifier = new SmimeSignatureVerifier();
+            SmimeSignatureResult result = verifier.verifyDetachedSignature(signedData, signatureData);
+
+            MimeBodyPart replacementPart = getMultipartSignedContentPartIfAvailable(part);
+            CryptoResultAnnotation annotation;
+            if (result.isValid()) {
+                annotation = CryptoResultAnnotation.createSmimeResultAnnotation(
+                        CryptoError.SMIME_SIGNED_VALID, replacementPart);
+            } else if (result.getError() == SmimeSignatureError.EXPIRED_CERTIFICATE) {
+                annotation = CryptoResultAnnotation.createSmimeResultAnnotation(
+                        CryptoError.SMIME_SIGNED_EXPIRED, replacementPart);
+            } else {
+                annotation = CryptoResultAnnotation.createSmimeResultAnnotation(
+                        CryptoError.SMIME_SIGNED_INVALID, replacementPart);
+            }
+
+            addCryptoResultAnnotationToMessage(annotation);
+        } catch (Exception e) {
+            Log.e(e, "Error verifying S/MIME signature");
+            MimeBodyPart replacementPart = getMultipartSignedContentPartIfAvailable(part);
+            CryptoResultAnnotation annotation =
+                    CryptoResultAnnotation.createSmimeSignatureErrorAnnotation(replacementPart);
+            addCryptoResultAnnotationToMessage(annotation);
         }
         onCryptoFinished();
     }
@@ -708,6 +779,13 @@ public class MessageCryptoHelper {
             }
 
             case SIGNATURES_AND_INLINE: {
+                state = State.SMIME_SIGNATURES;
+
+                findPartsForSmimeSignaturePass();
+                return;
+            }
+
+            case SMIME_SIGNATURES: {
                 state = State.AUTOCRYPT;
 
                 findPartsForAutocryptPass();
@@ -818,6 +896,7 @@ public class MessageCryptoHelper {
         PGP_INLINE,
         PGP_ENCRYPTED,
         PGP_SIGNED,
+        SMIME_SIGNED,
         PLAIN_AUTOCRYPT
     }
 
@@ -835,6 +914,6 @@ public class MessageCryptoHelper {
     }
 
     private enum State {
-        START, ENCRYPTION, SIGNATURES_AND_INLINE, AUTOCRYPT, FINISHED
+        START, ENCRYPTION, SIGNATURES_AND_INLINE, SMIME_SIGNATURES, AUTOCRYPT, FINISHED
     }
 }

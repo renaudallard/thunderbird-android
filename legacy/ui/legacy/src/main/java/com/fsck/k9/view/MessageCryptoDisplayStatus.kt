@@ -200,6 +200,36 @@ enum class MessageCryptoDisplayStatus(
         titleTextRes = R.string.crypto_msg_title_encrypted_unknown,
         descriptionTextRes = R.string.crypto_msg_unsupported_signed,
     ),
+    SMIME_SIGNED_VALID(
+        colorAttr = R.attr.openpgp_blue,
+        statusIconRes = Icons.Outlined.CheckCircle,
+        titleTextRes = R.string.crypto_msg_title_smime_signed,
+        descriptionTextRes = R.string.crypto_msg_smime_signed_valid,
+    ),
+    SMIME_SIGNED_INVALID(
+        colorAttr = R.attr.openpgp_red,
+        statusIconRes = Icons.Outlined.Help,
+        titleTextRes = R.string.crypto_msg_title_smime_signed,
+        descriptionTextRes = R.string.crypto_msg_smime_signed_invalid,
+    ),
+    SMIME_SIGNED_EXPIRED(
+        colorAttr = R.attr.openpgp_grey,
+        statusIconRes = Icons.Outlined.Help,
+        titleTextRes = R.string.crypto_msg_title_smime_signed,
+        descriptionTextRes = R.string.crypto_msg_smime_signed_expired,
+    ),
+    SMIME_SIGNED_UNTRUSTED(
+        colorAttr = R.attr.openpgp_orange,
+        statusIconRes = Icons.Outlined.Help,
+        titleTextRes = R.string.crypto_msg_title_smime_signed,
+        descriptionTextRes = R.string.crypto_msg_smime_signed_untrusted,
+    ),
+    SMIME_SIGNED_ERROR(
+        colorAttr = R.attr.openpgp_grey,
+        statusIconRes = Icons.Outlined.Help,
+        titleTextRes = R.string.crypto_msg_title_smime_signed,
+        descriptionTextRes = R.string.crypto_msg_smime_signed_error,
+    ),
     ;
 
     fun hasAssociatedKey(): Boolean {
@@ -244,6 +274,11 @@ enum class MessageCryptoDisplayStatus(
                 CryptoError.OPENPGP_SIGNED_API_ERROR -> UNENCRYPTED_SIGN_ERROR
                 CryptoError.OPENPGP_ENCRYPTED_API_ERROR -> ENCRYPTED_ERROR
                 CryptoError.OPENPGP_ENCRYPTED_NO_PROVIDER -> ENCRYPTED_NO_PROVIDER
+                CryptoError.SMIME_SIGNED_VALID -> SMIME_SIGNED_VALID
+                CryptoError.SMIME_SIGNED_INVALID -> SMIME_SIGNED_INVALID
+                CryptoError.SMIME_SIGNED_EXPIRED -> SMIME_SIGNED_EXPIRED
+                CryptoError.SMIME_SIGNED_UNTRUSTED -> SMIME_SIGNED_UNTRUSTED
+                CryptoError.SMIME_SIGNED_API_ERROR -> SMIME_SIGNED_ERROR
             }
         }
 
