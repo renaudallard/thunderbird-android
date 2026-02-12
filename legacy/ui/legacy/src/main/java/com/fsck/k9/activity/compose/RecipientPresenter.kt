@@ -406,7 +406,7 @@ class RecipientPresenter(
         val composeCryptoStatus = ComposeCryptoStatus(
             openPgpProviderState = openPgpProviderState,
             openPgpKeyId = accountCryptoKey,
-            recipientAddresses = allRecipients,
+            recipientAddresses = allRecipients.map { it.address.address },
             isPgpInlineModeEnabled = isForceTextMessageFormat,
             isSenderPreferEncryptMutual = account.autocryptPreferEncryptMutual,
             isReplyToEncrypted = isReplyToEncryptedMessage,
