@@ -104,7 +104,10 @@ public class MessageCryptoHelper {
         this.openPgpProvider = openPgpProvider;
     }
 
-    public boolean isConfiguredForOpenPgpProvider(String openPgpProvider) {
+    public boolean isConfiguredForOpenPgpProvider(@Nullable String openPgpProvider) {
+        if (this.openPgpProvider == null) {
+            return openPgpProvider == null;
+        }
         return this.openPgpProvider.equals(openPgpProvider);
     }
 
@@ -271,6 +274,12 @@ public class MessageCryptoHelper {
     }
 
     private void connectToCryptoProviderService() {
+        if (openPgpProvider == null) {
+            Log.w("No OpenPGP provider configured, cannot process OpenPGP parts");
+            skipRemainingOpenPgpParts();
+            nextStep();
+            return;
+        }
         openPgpServiceConnection = new OpenPgpServiceConnection(context, openPgpProvider,
                 new OnBound() {
 
@@ -288,6 +297,23 @@ public class MessageCryptoHelper {
                     }
                 });
         openPgpServiceConnection.bindToService();
+    }
+
+    private void skipRemainingOpenPgpParts() {
+        while (!partsToProcess.isEmpty()) {
+            CryptoPart part = partsToProcess.peekFirst();
+            if (part.type == CryptoPartType.SMIME_SIGNED) {
+                break;
+            }
+            partsToProcess.removeFirst();
+            if (part.type == CryptoPartType.PGP_ENCRYPTED) {
+                addErrorAnnotation(part.part, CryptoError.OPENPGP_ENCRYPTED_NO_PROVIDER,
+                        MessageHelper.createEmptyPart());
+            } else if (part.type == CryptoPartType.PGP_SIGNED) {
+                MimeBodyPart replacementPart = getMultipartSignedContentPartIfAvailable(part.part);
+                addErrorAnnotation(part.part, CryptoError.OPENPGP_SIGNED_API_ERROR, replacementPart);
+            }
+        }
     }
 
     private void decryptOrVerifyCurrentPart() {

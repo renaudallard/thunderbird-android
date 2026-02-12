@@ -153,11 +153,7 @@ public class MessageLoaderHelper {
         cancelAndClearDecodeLoader();
 
         String openPgpProvider = account.getOpenPgpProvider();
-        if (openPgpProvider != null) {
-            startOrResumeCryptoOperation(openPgpProvider);
-        } else {
-            startOrResumeDecodeMessage();
-        }
+        startOrResumeCryptoOperation(openPgpProvider);
     }
 
     /** Cancels all loading processes, prevents future callbacks, and destroys all loading state. */
@@ -241,7 +237,7 @@ public class MessageLoaderHelper {
         }
 
         String openPgpProvider = account.getOpenPgpProvider();
-        if (openPgpProvider != null) {
+        if (openPgpProvider != null || account.isSmimeConfigured()) {
             startOrResumeCryptoOperation(openPgpProvider);
             return;
         }
@@ -301,7 +297,7 @@ public class MessageLoaderHelper {
 
     // process with crypto helper
 
-    private void startOrResumeCryptoOperation(String openPgpProvider) {
+    private void startOrResumeCryptoOperation(@Nullable String openPgpProvider) {
         RetainFragment<MessageCryptoHelper> retainCryptoHelperFragment = getMessageCryptoHelperRetainFragment(true);
         if (retainCryptoHelperFragment.hasData()) {
             messageCryptoHelper = retainCryptoHelperFragment.getData();
