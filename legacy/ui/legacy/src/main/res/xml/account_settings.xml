@@ -443,4 +443,26 @@
 
     </PreferenceScreen>
 
+    <PreferenceScreen
+        android:icon="@drawable/ic_lock"
+        android:key="smime"
+        android:title="@string/account_settings_smime_title"
+        >
+
+        <SwitchPreference
+            android:key="smime_enable"
+            android:title="@string/account_settings_smime_enable"
+            android:summaryOff="@string/account_settings_smime_enable_summary_off"
+            android:summaryOn="@string/account_settings_smime_enable_summary_on"
+            />
+
+        <Preference
+            android:dependency="smime_enable"
+            android:key="smime_certificate"
+            android:title="@string/account_settings_smime_certificate"
+            android:summary="@string/account_settings_smime_certificate_summary_none"
+            />
+
+    </PreferenceScreen>
+
 </PreferenceScreen>

@@ -315,6 +315,11 @@ class AccountSettingsDescriptions {
         // note that there is no setting for openPgpProvider, because this will have to be set up together
         // with the actual provider after import anyways.
 
+        // S/MIME settings (no import/export for smimeCertificateAlias, like openPgpProvider)
+        s.put("smimeSigningEnabled", Settings.versions(
+                new V(107, new BooleanSetting(false))
+        ));
+
         SETTINGS = Collections.unmodifiableMap(s);
 
         Map<Integer, SettingsUpgrader> u = new HashMap<>();

@@ -3,6 +3,7 @@ package com.fsck.k9.ui.settings.account
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Build
+import android.security.KeyChain
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuInflater
@@ -93,6 +94,7 @@ class AccountSettingsFragment : PreferenceFragmentCompat(), ConfirmationDialogFr
         initializeMessageAge(account)
         initializeAdvancedPushSettings(account)
         initializeCryptoSettings(account)
+        initializeSmimeSettings(account)
         initializeFolderSettings(account)
         initializeNotifications(account)
     }
@@ -304,6 +306,37 @@ class AccountSettingsFragment : PreferenceFragmentCompat(), ConfirmationDialogFr
         }
     }
 
+    private fun initializeSmimeSettings(account: LegacyAccountDto) {
+        findPreference<Preference>(PREFERENCE_SMIME_CERTIFICATE)?.let { certPreference ->
+            updateSmimeCertificateSummary(certPreference, account.smimeCertificateAlias)
+            certPreference.onClick {
+                KeyChain.choosePrivateKeyAlias(
+                    requireActivity(),
+                    { alias ->
+                        requireActivity().runOnUiThread {
+                            account.smimeCertificateAlias = alias
+                            updateSmimeCertificateSummary(certPreference, alias)
+                            dataStore.saveSettingsInBackground()
+                        }
+                    },
+                    null,
+                    null,
+                    null,
+                    -1,
+                    account.smimeCertificateAlias,
+                )
+            }
+        }
+    }
+
+    private fun updateSmimeCertificateSummary(preference: Preference, alias: String?) {
+        preference.summary = if (alias != null) {
+            getString(R.string.account_settings_smime_certificate_summary, alias)
+        } else {
+            getString(R.string.account_settings_smime_certificate_summary_none)
+        }
+    }
+
     private fun configureCryptoPreferences(account: LegacyAccountDto) {
         var pgpProviderName: String? = null
         var pgpProvider = account.openPgpProvider
@@ -489,6 +522,7 @@ class AccountSettingsFragment : PreferenceFragmentCompat(), ConfirmationDialogFr
         private const val PREFERENCE_OPENPGP_ENABLE = "openpgp_provider"
         private const val PREFERENCE_OPENPGP_KEY = "openpgp_key"
         private const val PREFERENCE_AUTOCRYPT_TRANSFER = "autocrypt_transfer"
+        private const val PREFERENCE_SMIME_CERTIFICATE = "smime_certificate"
         internal const val PREFERENCE_FOLDERS = "folders"
         private const val PREFERENCE_AUTO_SELECT_FOLDER = "auto_select_folder"
         private const val PREFERENCE_SUBSCRIBED_FOLDERS_ONLY = "subscribed_folders_only"
