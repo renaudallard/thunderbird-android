@@ -52,6 +52,7 @@ androidxWork = "2.11.0"
 apacheHttpclient5 = "5.6"
 appAuth = "0.11.1"
 assertk = "0.28.1"
+bouncycastle = "1.78.1"
 circleImageView = "3.1.0"
 ckchangelog = "2.0.0-beta02"
 clikt = "5.0.3"
@@ -216,6 +217,8 @@ androidx-work-testing = { module = "androidx.work:work-testing", version.ref = "
 apache-httpclient5 = { module = "org.apache.httpcomponents.client5:httpclient5", version.ref = "apacheHttpclient5" }
 appauth = { module = "net.openid:appauth", version.ref = "appAuth" }
 assertk = { module = "com.willowtreeapps.assertk:assertk-jvm", version.ref = "assertk" }
+bouncycastle-bcpkix = { module = "org.bouncycastle:bcpkix-jdk18on", version.ref = "bouncycastle" }
+bouncycastle-bcprov = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
 circleImageView = { module = "de.hdodenhof:circleimageview", version.ref = "circleImageView" }
 ckchangelog-core = { module = "de.cketti.library.changelog:ckchangelog-core", version.ref = "ckchangelog" }
 clikt = { module = "com.github.ajalt.clikt:clikt", version.ref = "clikt" }

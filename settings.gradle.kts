@@ -233,6 +233,7 @@ include(
     ":legacy:common",
     ":legacy:core",
     ":legacy:crypto-openpgp",
+    ":legacy:crypto-smime",
     ":legacy:di",
     ":legacy:mailstore",
     ":legacy:message",

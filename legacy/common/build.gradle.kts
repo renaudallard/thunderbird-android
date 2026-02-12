@@ -7,6 +7,7 @@ dependencies {
     implementation(projects.legacy.core)
     implementation(projects.legacy.storage)
     implementation(projects.legacy.cryptoOpenpgp)
+    implementation(projects.legacy.cryptoSmime)
     implementation(projects.backend.imap)
     implementation(projects.backend.pop3)
 
