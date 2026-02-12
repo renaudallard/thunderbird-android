@@ -14,4 +14,8 @@ interface CryptoStatus {
     val isEncryptAllDrafts: Boolean
     val isEncryptSubject: Boolean
     fun getRecipientAddresses(): Array<String>
+
+    val isSmimeConfigured: Boolean get() = false
+    val smimeCertificateAlias: String? get() = null
+    val isSmimeSigningEnabled: Boolean get() = false
 }

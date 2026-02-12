@@ -413,6 +413,9 @@ class RecipientPresenter(
             isEncryptAllDrafts = account.isOpenPgpEncryptAllDrafts,
             isEncryptSubject = account.isOpenPgpEncryptSubject,
             cryptoMode = currentCryptoMode,
+            isSmimeConfigured = account.isSmimeConfigured,
+            smimeCertificateAlias = account.smimeCertificateAlias,
+            isSmimeSigningEnabled = account.isSmimeSigningEnabled,
         )
 
         if (openPgpProviderState != OpenPgpProviderState.OK) {

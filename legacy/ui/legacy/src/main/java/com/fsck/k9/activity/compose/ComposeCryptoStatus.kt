@@ -24,6 +24,9 @@ data class ComposeCryptoStatus(
     override val isEncryptSubject: Boolean,
     private val cryptoMode: CryptoMode,
     private val recipientAutocryptStatus: RecipientAutocryptStatus? = null,
+    override val isSmimeConfigured: Boolean = false,
+    override val smimeCertificateAlias: String? = null,
+    override val isSmimeSigningEnabled: Boolean = false,
 ) : CryptoStatus {
 
     constructor(
@@ -94,6 +97,11 @@ data class ComposeCryptoStatus(
         else -> CryptoStatusDisplayType.ENABLED
     }
 
+    private val displayTypeFromSmimeSignOnly = when {
+        !isOpenPgpConfigured && isSmimeConfigured && isSmimeSigningEnabled -> CryptoStatusDisplayType.SIGN_ONLY
+        else -> null
+    }
+
     private val displayTypeFromSignOnly = when {
         isSignOnly -> CryptoStatusDisplayType.SIGN_ONLY
         else -> null
@@ -109,6 +117,7 @@ data class ComposeCryptoStatus(
             ?: displayTypeFromAutocryptError
             ?: displayTypeFromEnabledAutocryptStatus
             ?: displayTypeFromSignOnly
+            ?: displayTypeFromSmimeSignOnly
             ?: displayTypeFromEncryptionAvailable
             ?: CryptoStatusDisplayType.UNAVAILABLE
 
@@ -157,6 +166,9 @@ data class ComposeCryptoStatus(
         isEncryptSubject = isEncryptSubject,
         recipientAddresses = recipientAddresses,
         recipientAutocryptStatus = recipientAutocryptStatusType,
+        isSmimeConfigured = isSmimeConfigured,
+        smimeCertificateAlias = smimeCertificateAlias,
+        isSmimeSigningEnabled = isSmimeSigningEnabled,
     )
 
     enum class SendErrorState {
