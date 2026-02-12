@@ -2,6 +2,7 @@ package com.fsck.k9.ui.settings.account
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.security.KeyChain
 import android.os.Bundle
@@ -10,6 +11,7 @@ import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.net.toUri
 import androidx.core.view.MenuHost
 import androidx.core.view.MenuProvider
@@ -64,6 +66,12 @@ class AccountSettingsFragment : PreferenceFragmentCompat(), ConfirmationDialogFr
     private val appNameProvider: AppNameProvider by inject()
 
     private lateinit var dataStore: AccountSettingsDataStore
+
+    private val pickCertificateLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) {
+            installCertificateFromUri(uri)
+        }
+    }
 
     private var notificationSoundPreference: NotificationSoundPreference? = null
     private var notificationLightPreference: ListPreference? = null
@@ -307,6 +315,10 @@ class AccountSettingsFragment : PreferenceFragmentCompat(), ConfirmationDialogFr
     }
 
     private fun initializeSmimeSettings(account: LegacyAccountDto) {
+        findPreference<Preference>(PREFERENCE_SMIME_IMPORT_CERTIFICATE)?.onClick {
+            pickCertificateLauncher.launch("application/x-pkcs12")
+        }
+
         findPreference<Preference>(PREFERENCE_SMIME_CERTIFICATE)?.let { certPreference ->
             updateSmimeCertificateSummary(certPreference, account.smimeCertificateAlias)
             certPreference.onClick {
@@ -326,6 +338,29 @@ class AccountSettingsFragment : PreferenceFragmentCompat(), ConfirmationDialogFr
                     account.smimeCertificateAlias,
                 )
             }
+        }
+    }
+
+    private fun installCertificateFromUri(uri: Uri) {
+        try {
+            val bytes = requireContext().contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            if (bytes == null) {
+                Toast.makeText(
+                    requireContext(),
+                    R.string.account_settings_smime_import_certificate_read_error,
+                    Toast.LENGTH_LONG,
+                ).show()
+                return
+            }
+            val installIntent = KeyChain.createInstallIntent()
+            installIntent.putExtra(KeyChain.EXTRA_PKCS12, bytes)
+            startActivity(installIntent)
+        } catch (e: Exception) {
+            Toast.makeText(
+                requireContext(),
+                R.string.account_settings_smime_import_certificate_read_error,
+                Toast.LENGTH_LONG,
+            ).show()
         }
     }
 
@@ -522,6 +557,7 @@ class AccountSettingsFragment : PreferenceFragmentCompat(), ConfirmationDialogFr
         private const val PREFERENCE_OPENPGP_ENABLE = "openpgp_provider"
         private const val PREFERENCE_OPENPGP_KEY = "openpgp_key"
         private const val PREFERENCE_AUTOCRYPT_TRANSFER = "autocrypt_transfer"
+        private const val PREFERENCE_SMIME_IMPORT_CERTIFICATE = "smime_import_certificate"
         private const val PREFERENCE_SMIME_CERTIFICATE = "smime_certificate"
         internal const val PREFERENCE_FOLDERS = "folders"
         private const val PREFERENCE_AUTO_SELECT_FOLDER = "auto_select_folder"

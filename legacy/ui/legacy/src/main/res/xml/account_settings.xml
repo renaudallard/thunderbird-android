@@ -458,6 +458,13 @@
 
         <Preference
             android:dependency="smime_enable"
+            android:key="smime_import_certificate"
+            android:title="@string/account_settings_smime_import_certificate"
+            android:summary="@string/account_settings_smime_import_certificate_summary"
+            />
+
+        <Preference
+            android:dependency="smime_enable"
             android:key="smime_certificate"
             android:title="@string/account_settings_smime_certificate"
             android:summary="@string/account_settings_smime_certificate_summary_none"

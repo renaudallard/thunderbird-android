@@ -995,6 +995,9 @@
     <string name="account_settings_smime_certificate">Signing certificate</string>
     <string name="account_settings_smime_certificate_summary_none">No certificate selected</string>
     <string name="account_settings_smime_certificate_summary">Certificate: %s</string>
+    <string name="account_settings_smime_import_certificate">Import certificate from file</string>
+    <string name="account_settings_smime_import_certificate_summary">Import a PKCS#12 (.p12/.pfx) certificate file</string>
+    <string name="account_settings_smime_import_certificate_read_error">Could not read certificate file</string>
 
     <string name="crypto_msg_smime_signed_valid">S/MIME signature verified</string>
     <string name="crypto_msg_smime_signed_invalid">S/MIME signature is invalid</string>
