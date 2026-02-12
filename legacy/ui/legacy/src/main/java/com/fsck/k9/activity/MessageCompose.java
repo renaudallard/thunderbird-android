@@ -114,6 +114,7 @@ import com.fsck.k9.message.IdentityHeaderParser;
 import com.fsck.k9.message.MessageBuilder;
 import com.fsck.k9.message.PgpMessageBuilder;
 import com.fsck.k9.message.QuotedTextMode;
+import com.fsck.k9.crypto.smime.SmimeMessageBuilder;
 import com.fsck.k9.message.SimpleMessageBuilder;
 import com.fsck.k9.message.SimpleMessageFormat;
 import com.fsck.k9.ui.R;
@@ -772,6 +773,9 @@ public class MessageCompose extends BaseActivity implements OnClickListener,
         }
 
         boolean shouldUsePgpMessageBuilder = cryptoStatus.isOpenPgpConfigured();
+        boolean shouldUseSmimeBuilder = !shouldUsePgpMessageBuilder
+                && cryptoStatus.isSmimeConfigured() && cryptoStatus.isSmimeSigningEnabled();
+
         if (shouldUsePgpMessageBuilder) {
             SendErrorState maybeSendErrorState = cryptoStatus.getSendErrorStateOrNull();
             if (maybeSendErrorState != null) {
@@ -782,6 +786,11 @@ public class MessageCompose extends BaseActivity implements OnClickListener,
             PgpMessageBuilder pgpBuilder = PgpMessageBuilder.newInstance();
             recipientPresenter.builderSetProperties(pgpBuilder, cryptoStatus);
             builder = pgpBuilder;
+        } else if (shouldUseSmimeBuilder) {
+            SmimeMessageBuilder smimeBuilder = SmimeMessageBuilder.newInstance(this);
+            smimeBuilder.setCryptoStatus(cryptoStatus);
+            recipientPresenter.builderSetProperties(smimeBuilder);
+            builder = smimeBuilder;
         } else {
             builder = SimpleMessageBuilder.newInstance();
             recipientPresenter.builderSetProperties(builder);
