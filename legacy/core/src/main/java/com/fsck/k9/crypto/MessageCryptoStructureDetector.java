@@ -32,6 +32,8 @@ public class MessageCryptoStructureDetector {
     private static final String PROTOCOL_PARAMETER = "protocol";
     private static final String APPLICATION_PGP_ENCRYPTED = "application/pgp-encrypted";
     private static final String APPLICATION_PGP_SIGNATURE = "application/pgp-signature";
+    private static final String APPLICATION_PKCS7_SIGNATURE = "application/pkcs7-signature";
+    private static final String APPLICATION_PKCS7_MIME = "application/pkcs7-mime";
     private static final String TEXT_PLAIN = "text/plain";
     // APPLICATION/PGP is a special case which occurs from mutt. see http://www.mutt.org/doc/PGP-Notes.txt
     private static final String APPLICATION_PGP = "application/pgp";
@@ -270,6 +272,49 @@ public class MessageCryptoStructureDetector {
 
         String protocolParameter = MimeUtility.getHeaderParameter(part.getContentType(), PROTOCOL_PARAMETER);
         return APPLICATION_PGP_SIGNATURE.equalsIgnoreCase(protocolParameter);
+    }
+
+    public static boolean isMultipartSignedSmimeProtocol(Part part) {
+        if (!isSameMimeType(part.getMimeType(), MULTIPART_SIGNED)) {
+            throw new IllegalArgumentException("Part is not multipart/signed!");
+        }
+
+        String protocolParameter = MimeUtility.getHeaderParameter(part.getContentType(), PROTOCOL_PARAMETER);
+        return APPLICATION_PKCS7_SIGNATURE.equalsIgnoreCase(protocolParameter);
+    }
+
+    public static List<Part> findSmimeOpaqueSignedParts(Part startPart) {
+        List<Part> signedParts = new ArrayList<>();
+        Stack<Part> partsToCheck = new Stack<>();
+        partsToCheck.push(startPart);
+
+        while (!partsToCheck.isEmpty()) {
+            Part part = partsToCheck.pop();
+            Body body = part.getBody();
+
+            if (isSmimeOpaqueSigned(part)) {
+                signedParts.add(part);
+                continue;
+            }
+
+            if (body instanceof Multipart) {
+                Multipart multipart = (Multipart) body;
+                for (int i = multipart.getCount() - 1; i >= 0; i--) {
+                    BodyPart bodyPart = multipart.getBodyPart(i);
+                    partsToCheck.push(bodyPart);
+                }
+            }
+        }
+
+        return signedParts;
+    }
+
+    private static boolean isSmimeOpaqueSigned(Part part) {
+        if (!isSameMimeType(part.getMimeType(), APPLICATION_PKCS7_MIME)) {
+            return false;
+        }
+        String smimeType = MimeUtility.getHeaderParameter(part.getContentType(), "smime-type");
+        return "signed-data".equalsIgnoreCase(smimeType);
     }
 
     @VisibleForTesting
