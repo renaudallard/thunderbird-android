@@ -342,6 +342,17 @@ open class LegacyAccountDto(
 
     @get:Synchronized
     @set:Synchronized
+    var smimeCertificateAlias: String? = null
+
+    @get:Synchronized
+    @set:Synchronized
+    var isSmimeSigningEnabled: Boolean = false
+
+    val isSmimeConfigured: Boolean
+        get() = smimeCertificateAlias != null
+
+    @get:Synchronized
+    @set:Synchronized
     var isMarkMessageAsReadOnView = false
 
     @get:Synchronized
