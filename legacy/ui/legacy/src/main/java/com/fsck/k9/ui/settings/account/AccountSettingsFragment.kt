@@ -22,6 +22,7 @@ import androidx.lifecycle.Lifecycle
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.security.KeyStore
+import net.thunderbird.core.logging.legacy.Log
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import androidx.preference.ListPreference
 import androidx.preference.Preference
@@ -384,7 +385,7 @@ class AccountSettingsFragment : PreferenceFragmentCompat(), ConfirmationDialogFr
             val inputKs = KeyStore.getInstance("PKCS12", bcProvider)
             inputKs.load(ByteArrayInputStream(pkcs12Bytes), password)
 
-            val outputKs = KeyStore.getInstance("PKCS12-DEF-3DES-3DES", bcProvider)
+            val outputKs = KeyStore.getInstance("PKCS12-3DES-3DES", bcProvider)
             outputKs.load(null, null)
 
             for (alias in inputKs.aliases().asSequence()) {
@@ -406,6 +407,7 @@ class AccountSettingsFragment : PreferenceFragmentCompat(), ConfirmationDialogFr
             installIntent.putExtra(KeyChain.EXTRA_PKCS12, legacyBytes)
             startActivity(installIntent)
         } catch (e: Exception) {
+            Log.e(e, "Failed to re-encode PKCS#12 certificate")
             Toast.makeText(
                 requireContext(),
                 R.string.account_settings_smime_import_certificate_wrong_password,
