@@ -11,6 +11,7 @@ dependencies {
 
     implementation(projects.legacy.core)
     implementation(projects.legacy.cryptoSmime)
+    implementation(libs.bouncycastle.bcprov)
     implementation(projects.feature.mail.account.api)
     implementation(projects.mail.common)
     implementation(projects.uiUtils.toolbarBottomSheet)

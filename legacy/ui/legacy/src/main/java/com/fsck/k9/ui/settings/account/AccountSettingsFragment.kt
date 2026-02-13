@@ -6,16 +6,23 @@ import android.net.Uri
 import android.os.Build
 import android.security.KeyChain
 import android.os.Bundle
+import android.text.InputType
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
+import android.widget.EditText
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.core.net.toUri
 import androidx.core.view.MenuHost
 import androidx.core.view.MenuProvider
 import androidx.lifecycle.Lifecycle
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.security.KeyStore
+import org.bouncycastle.jce.provider.BouncyCastleProvider
 import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
@@ -316,7 +323,7 @@ class AccountSettingsFragment : PreferenceFragmentCompat(), ConfirmationDialogFr
 
     private fun initializeSmimeSettings(account: LegacyAccountDto) {
         findPreference<Preference>(PREFERENCE_SMIME_IMPORT_CERTIFICATE)?.onClick {
-            pickCertificateLauncher.launch("application/x-pkcs12")
+            pickCertificateLauncher.launch("*/*")
         }
 
         findPreference<Preference>(PREFERENCE_SMIME_CERTIFICATE)?.let { certPreference ->
@@ -342,23 +349,66 @@ class AccountSettingsFragment : PreferenceFragmentCompat(), ConfirmationDialogFr
     }
 
     private fun installCertificateFromUri(uri: Uri) {
-        try {
-            val bytes = requireContext().contentResolver.openInputStream(uri)?.use { it.readBytes() }
-            if (bytes == null) {
-                Toast.makeText(
-                    requireContext(),
-                    R.string.account_settings_smime_import_certificate_read_error,
-                    Toast.LENGTH_LONG,
-                ).show()
-                return
+        val bytes = try {
+            requireContext().contentResolver.openInputStream(uri)?.use { it.readBytes() }
+        } catch (e: Exception) {
+            null
+        }
+        if (bytes == null) {
+            Toast.makeText(
+                requireContext(),
+                R.string.account_settings_smime_import_certificate_read_error,
+                Toast.LENGTH_LONG,
+            ).show()
+            return
+        }
+
+        val passwordInput = EditText(requireContext()).apply {
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.account_settings_smime_import_certificate_password)
+            .setView(passwordInput)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val password = passwordInput.text.toString().toCharArray()
+                reencodeAndInstallCertificate(bytes, password)
             }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun reencodeAndInstallCertificate(pkcs12Bytes: ByteArray, password: CharArray) {
+        try {
+            val bcProvider = BouncyCastleProvider()
+
+            val inputKs = KeyStore.getInstance("PKCS12", bcProvider)
+            inputKs.load(ByteArrayInputStream(pkcs12Bytes), password)
+
+            val outputKs = KeyStore.getInstance("PKCS12-DEF-3DES-3DES", bcProvider)
+            outputKs.load(null, null)
+
+            for (alias in inputKs.aliases().asSequence()) {
+                if (inputKs.isKeyEntry(alias)) {
+                    val key = inputKs.getKey(alias, password)
+                    val chain = inputKs.getCertificateChain(alias)
+                    outputKs.setKeyEntry(alias, key, password, chain)
+                } else if (inputKs.isCertificateEntry(alias)) {
+                    outputKs.setCertificateEntry(alias, inputKs.getCertificate(alias))
+                }
+            }
+
+            val legacyBytes = ByteArrayOutputStream().use { out ->
+                outputKs.store(out, password)
+                out.toByteArray()
+            }
+
             val installIntent = KeyChain.createInstallIntent()
-            installIntent.putExtra(KeyChain.EXTRA_PKCS12, bytes)
+            installIntent.putExtra(KeyChain.EXTRA_PKCS12, legacyBytes)
             startActivity(installIntent)
         } catch (e: Exception) {
             Toast.makeText(
                 requireContext(),
-                R.string.account_settings_smime_import_certificate_read_error,
+                R.string.account_settings_smime_import_certificate_wrong_password,
                 Toast.LENGTH_LONG,
             ).show()
         }
